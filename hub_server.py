@@ -1,5 +1,6 @@
 import json
 import os
+import platform
 import subprocess
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -71,14 +72,22 @@ class HubHandler(SimpleHTTPRequestHandler):
         python_exec = str(PYTHON if PYTHON.exists() else Path(os.sys.executable))
 
         try:
-            subprocess.Popen(
-                [python_exec, str(target)],
-                cwd=str(ROOT),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            if platform.system() == "Darwin":
+                # On macOS open a new Terminal window so pygame can access the display
+                cmd = f'"{python_exec}" "{target}"'
+                subprocess.Popen(
+                    ["osascript", "-e",
+                     f'tell application "Terminal" to do script "{cmd}"']
+                )
+            else:
+                subprocess.Popen(
+                    [python_exec, str(target)],
+                    cwd=str(ROOT),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    stdin=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
         except Exception as exc:
             self._send_json(500, {"error": f"Launch failed: {exc}"})
             return
