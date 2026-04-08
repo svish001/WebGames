@@ -933,9 +933,9 @@
     const PY = `${ROOT}/.venv/bin/python`;
 
     const apps = [
-      { file: "aim_finder.py", emoji: "🎯", name: "Aim Finder Arena", category: "Arcade", difficulty: "Hard", desc: "Precision shooter trainer.", vibe: "Sharp reflex", webUrl: "aim_finder.html" },
-      { file: "path_finder.py", emoji: "🧭", name: "Path Finder Arena", category: "Arcade", difficulty: "Hard", desc: "Maze action challenge.", vibe: "Deep mission", webUrl: "path_finder.html" },
-      { file: "NBA_data.py", emoji: "🏀", name: "NBA Run And Gun", category: "Sports", difficulty: "Medium", desc: "Fast basketball arcade.", vibe: "Fast court", webUrl: "nba_data.html" },
+      { file: "aim_finder.py", emoji: "🎯", name: "Aim Finder Arena", category: "Arcade", difficulty: "Hard", desc: "Precision shooter trainer.", vibe: "Sharp reflex", webUrl: "aim_finder.html", pygame: true },
+      { file: "path_finder.py", emoji: "🧭", name: "Path Finder Arena", category: "Arcade", difficulty: "Hard", desc: "Maze action challenge.", vibe: "Deep mission", webUrl: "path_finder.html", pygame: true },
+      { file: "NBA_data.py", emoji: "🏀", name: "NBA Run And Gun", category: "Sports", difficulty: "Medium", desc: "Fast basketball arcade.", vibe: "Fast court", webUrl: "nba_data.html", pygame: true },
       { file: "slot_machine.py", emoji: "🎰", name: "Slot Machine Deluxe", category: "Casino", difficulty: "Easy", desc: "High-style slot action.", vibe: "Lucky spin", webUrl: "slot_machine.html" },
       { file: "turtlerace.py", emoji: "🐢", name: "Turtle Race", category: "Arcade", difficulty: "Easy", desc: "Color race mini game.", vibe: "Chill race", webUrl: "turtlerace.html" },
       { file: "quiz_game.py", emoji: "🧠", name: "Quiz Game", category: "Quiz", difficulty: "Easy", desc: "Quick quiz battle.", vibe: "Brain spark", webUrl: "quiz_game.html" },
@@ -943,7 +943,7 @@
       { file: "rockpaperscissor.py", emoji: "✂️", name: "Rock Paper Scissor", category: "Arcade", difficulty: "Easy", desc: "Instant reflex duel.", vibe: "Micro duel", webUrl: "rockpaperscissor.html" },
       { file: "PIG.py", emoji: "🐷", name: "PIG Dice", category: "Strategy", difficulty: "Medium", desc: "Risk and reward dice.", vibe: "Risk mode", webUrl: "pig.html" },
       { file: "time_math_challenge.py", emoji: "⏱️", name: "Time Math Challenge", category: "Educational", difficulty: "Medium", desc: "Timed math pressure.", vibe: "Speed brain", webUrl: "time_math_challenge.html" },
-      { file: "timer_clock.py", emoji: "⏰", name: "Timer Clock Studio", category: "Utility", difficulty: "Easy", desc: "Timer alarm utility.", vibe: "Calm utility", webUrl: "timer_clock.html" },
+      { file: "timer_clock.py", emoji: "⏰", name: "Timer Clock Studio", category: "Utility", difficulty: "Easy", desc: "Timer alarm utility.", vibe: "Calm utility", webUrl: "timer_clock.html", pygame: true },
       { file: "madlibs.py", emoji: "📖", name: "Mad Libs", category: "Creative", difficulty: "Easy", desc: "Story remix fun.", vibe: "Story fun", webUrl: "madlibs.html" },
       { file: "choose_adv.py", emoji: "🕹️", name: "Choice Adventure", category: "Story", difficulty: "Medium", desc: "Branching adventure.", vibe: "Branch route", webUrl: "choose_adv.html" },
       { file: "tying_test.py", emoji: "⌨️", name: "Typing Test", category: "Skill", difficulty: "Medium", desc: "Typing speed trainer.", vibe: "Skill grind", webUrl: "tying_test.html" },
@@ -1050,7 +1050,7 @@
 
     function runApp(file) {
       const app = apps.find(a => a.file === file);
-      if (app && app.webUrl) {
+      if (app && app.webUrl && !app.pygame) {
         window.open(app.webUrl, "_blank");
         return;
       }
