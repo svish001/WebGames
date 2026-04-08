@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz Game — WebGames</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #090909;
+      color: #f4f1eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    .game-wrap {
+      position: relative;
+      z-index: 1;
+      width: min(640px, calc(100% - 2rem));
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      gap: 1.5rem;
+      background: rgba(10, 10, 10, 0.78);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 2.5rem;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+    }
+    .screen.active { display: flex; }
+
+    .kicker {
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #c6a76a;
+      font-weight: 600;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    p.sub {
+      color: #b5aea3;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .progress-bar-wrap {
+      background: rgba(255,255,255,0.08);
+      border-radius: 99px;
+      height: 5px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #c6a76a, #e8c87a);
+      border-radius: 99px;
+      transition: width 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .q-counter {
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #7f786f;
+    }
+
+    .question-text {
+      font-size: clamp(1.1rem, 3vw, 1.35rem);
+      font-weight: 600;
+      line-height: 1.4;
+      min-height: 3.5rem;
+    }
+
+    .answer-wrap {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px;
+      padding: 0.875rem 1.25rem;
+      color: #f4f1eb;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: #c6a76a;
+      background: rgba(255,255,255,0.09);
+    }
+    input[type="text"]:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      transition: transform 0.18s, background 0.18s, opacity 0.18s;
+    }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #f4f1eb;
+      color: #111;
+      padding: 0.875rem 1.75rem;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+    }
+    .btn-primary:hover:not(:disabled) { background: #fff; }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #c6a76a, #e8c87a);
+      color: #111;
+      padding: 0.875rem 1.75rem;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+    }
+    .btn-gold:hover:not(:disabled) { background: linear-gradient(135deg, #d4b87a, #f0d08a); }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.06);
+      color: #f4f1eb;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 0.875rem 1.75rem;
+      font-size: 0.95rem;
+    }
+
+    .feedback {
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.875rem 1.25rem;
+      border-radius: 12px;
+      text-align: center;
+      display: none;
+    }
+    .feedback.correct {
+      background: rgba(52, 199, 89, 0.15);
+      border: 1px solid rgba(52, 199, 89, 0.3);
+      color: #34c759;
+      display: block;
+    }
+    .feedback.wrong {
+      background: rgba(255, 69, 58, 0.15);
+      border: 1px solid rgba(255, 69, 58, 0.3);
+      color: #ff453a;
+      display: block;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #7f786f;
+      text-align: center;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* Results */
+    .score-ring-wrap {
+      display: flex;
+      justify-content: center;
+    }
+    .score-ring {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring .ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 10; }
+    .score-ring .ring-fill {
+      fill: none;
+      stroke: url(#goldGrad);
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s cubic-bezier(0.16,1,0.3,1);
+    }
+    .score-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-label strong { font-size: 2rem; font-weight: 800; }
+    .score-label span { font-size: 0.7rem; color: #7f786f; letter-spacing: 0.14em; text-transform: uppercase; }
+
+    .result-message {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .btn-row button { flex: 1; min-width: 120px; }
+
+    .back-link {
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+    .back-link a {
+      color: #7f786f;
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back-link a:hover { color: #c6a76a; }
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<div class="game-wrap">
+
+  <!-- START SCREEN -->
+  <div class="screen active" id="startScreen">
+    <div class="kicker">🧠 WebGames · Quiz</div>
+    <h1>General Knowledge Quiz</h1>
+    <p class="sub">10 questions. Type your answer and press Enter. Can you go perfect?</p>
+    <button class="btn-gold" id="startBtn">Start Quiz</button>
+    <div class="back-link"><a href="game_hub.html">← Back to Hub</a></div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div class="screen" id="quizScreen">
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+        <div class="kicker" id="qCounter">Question 1 of 10</div>
+        <div class="kicker" id="scoreTracker">Score: 0</div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressBar" style="width:10%"></div>
+      </div>
+    </div>
+
+    <div class="question-text" id="questionText"></div>
+
+    <div class="answer-wrap">
+      <input type="text" id="answerInput" placeholder="Type your answer…" autocomplete="off" spellcheck="false" />
+      <button class="btn-primary" id="submitBtn">Submit</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+    <div class="hint" id="hintText"></div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="screen" id="resultsScreen">
+    <div class="kicker">Quiz complete</div>
+    <h1 id="resultsTitle">Nice work!</h1>
+
+    <div class="score-ring-wrap">
+      <div class="score-ring">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <defs>
+            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#c6a76a" />
+              <stop offset="100%" style="stop-color:#e8c87a" />
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="70" cy="70" r="60" />
+          <circle class="ring-fill" id="ringFill" cx="70" cy="70" r="60"
+            stroke-dasharray="377" stroke-dashoffset="377" />
+        </svg>
+        <div class="score-label">
+          <strong id="finalScore">0</strong>
+          <span>out of 10</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-message" id="resultMessage"></div>
+
+    <div class="btn-row">
+      <button class="btn-gold" id="restartBtn">Play Again</button>
+      <button class="btn-ghost" id="hubBtn">Back to Hub</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── NYC Canvas Background ──────────────────────────────────────
+  const canvas = document.getElementById("bgCanvas");
+  const ctx = canvas.getContext("2d");
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    drawBg();
+  }
+
+  function drawBg() {
+    const w = canvas.width, h = canvas.height;
+
+    // Sky gradient
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0,   "#0a0a1a");
+    sky.addColorStop(0.5, "#101828");
+    sky.addColorStop(1,   "#1a2035");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h);
+
+    // Stars
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    const stars = [
+      [0.08,0.06],[0.21,0.03],[0.35,0.08],[0.5,0.04],[0.63,0.07],
+      [0.77,0.02],[0.88,0.09],[0.14,0.14],[0.42,0.12],[0.71,0.11],
+      [0.92,0.05],[0.03,0.18],[0.56,0.15],[0.84,0.17],[0.29,0.19]
+    ];
+    stars.forEach(([rx, ry]) => {
+      ctx.beginPath();
+      ctx.arc(rx * w, ry * h, 1.1, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Moon
+    ctx.fillStyle = "#fff9e6";
+    ctx.beginPath();
+    ctx.arc(w * 0.85, h * 0.08, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#101828";
+    ctx.beginPath();
+    ctx.arc(w * 0.87, h * 0.07, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Buildings
+    const buildings = [
+      { rx:0.00, ryTop:0.72, rw:0.12, col:"#1a1a28" },
+      { rx:0.11, ryTop:0.65, rw:0.10, col:"#222234" },
+      { rx:0.20, ryTop:0.74, rw:0.09, col:"#1a1a28" },
+      { rx:0.28, ryTop:0.62, rw:0.13, col:"#222234" },
+      { rx:0.40, ryTop:0.70, rw:0.11, col:"#1a1a28" },
+      { rx:0.50, ryTop:0.58, rw:0.15, col:"#222234" },
+      { rx:0.64, ryTop:0.73, rw:0.11, col:"#1a1a28" },
+      { rx:0.74, ryTop:0.63, rw:0.12, col:"#222234" },
+      { rx:0.85, ryTop:0.69, rw:0.16, col:"#1a1a28" },
+    ];
+
+    buildings.forEach(b => {
+      const bx = b.rx * w;
+      const by = b.ryTop * h;
+      const bw = b.rw * w;
+      const bh = h - by;
+
+      // Building body
+      ctx.fillStyle = b.col;
+      ctx.fillRect(bx, by, bw, bh);
+
+      // Windows
+      const cols = Math.max(2, Math.floor(bw / 16));
+      const winW = 5, winH = 7, padX = 8, padY = 14, gapX = (bw - padX * 2 - cols * winW) / Math.max(1, cols - 1);
+      let row = 0;
+      for (let wy = by + padY; wy + winH < h - 10; wy += winH + 11) {
+        for (let col = 0; col < cols; col++) {
+          const wx = bx + padX + col * (winW + gapX);
+          const lit = ((col + row * 3 + Math.floor(b.rx * 17)) % 5) !== 0;
+          if (lit) {
+            ctx.fillStyle = Math.random() > 0.95 ? "#ffd580" : "rgba(255,220,120,0.75)";
+            ctx.fillRect(wx, wy, winW, winH);
+          }
+        }
+        row++;
+      }
+    });
+
+    // Ground
+    const ground = ctx.createLinearGradient(0, h * 0.88, 0, h);
+    ground.addColorStop(0, "#0e1120");
+    ground.addColorStop(1, "#080a12");
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, h * 0.88, w, h * 0.12);
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+
+  // ── Quiz Logic ────────────────────────────────────────────────
+  const QUESTIONS = [
+    { q: "What color is the sky on a clear day?",          a: "blue" },
+    { q: "How many days are in a week?",                   a: "7" },
+    { q: "What is 2 + 2?",                                 a: "4" },
+    { q: "What do bees make?",                             a: "honey" },
+    { q: "Which planet do we live on?",                    a: "earth" },
+    { q: "What gas do humans breathe in to survive?",      a: "oxygen" },
+    { q: "How many months are in a year?",                 a: "12" },
+    { q: "What do you call frozen water?",                 a: "ice" },
+    { q: "What is the opposite of hot?",                   a: "cold" },
+    { q: "What do plants need from sunlight to make food?",a: "light" },
+  ];
+
+  let current = 0;
+  let score   = 0;
+  let answered = false;
+
+  const startScreen   = document.getElementById("startScreen");
+  const quizScreen    = document.getElementById("quizScreen");
+  const resultsScreen = document.getElementById("resultsScreen");
+  const qCounter      = document.getElementById("qCounter");
+  const scoreTracker  = document.getElementById("scoreTracker");
+  const progressBar   = document.getElementById("progressBar");
+  const questionText  = document.getElementById("questionText");
+  const answerInput   = document.getElementById("answerInput");
+  const submitBtn     = document.getElementById("submitBtn");
+  const feedback      = document.getElementById("feedback");
+  const hintText      = document.getElementById("hintText");
+  const finalScore    = document.getElementById("finalScore");
+  const ringFill      = document.getElementById("ringFill");
+  const resultMessage = document.getElementById("resultMessage");
+  const resultsTitle  = document.getElementById("resultsTitle");
+
+  function show(screen) {
+    [startScreen, quizScreen, resultsScreen].forEach(s => s.classList.remove("active"));
+    screen.classList.add("active");
+  }
+
+  function loadQuestion() {
+    answered = false;
+    feedback.className = "feedback";
+    hintText.textContent = "";
+    answerInput.value = "";
+    answerInput.disabled = false;
+    submitBtn.disabled = false;
+    answerInput.focus();
+
+    const pct = ((current + 1) / QUESTIONS.length) * 100;
+    progressBar.style.width = pct + "%";
+    qCounter.textContent = `Question ${current + 1} of ${QUESTIONS.length}`;
+    scoreTracker.textContent = `Score: ${score}`;
+    questionText.textContent = QUESTIONS[current].q;
+    hintText.textContent = "Press Enter to submit";
+  }
+
+  function submitAnswer() {
+    if (answered) { nextQuestion(); return; }
+
+    const userAns = answerInput.value.trim().toLowerCase();
+    if (!userAns) return;
+
+    answered = true;
+    answerInput.disabled = true;
+    submitBtn.textContent = "Next →";
+
+    const correct = userAns === QUESTIONS[current].a;
+    if (correct) {
+      score++;
+      feedback.textContent = "✓ Correct!";
+      feedback.className = "feedback correct";
+    } else {
+      feedback.textContent = `✗ Not quite — the answer was "${QUESTIONS[current].a}"`;
+      feedback.className = "feedback wrong";
+    }
+    scoreTracker.textContent = `Score: ${score}`;
+    hintText.textContent = current < QUESTIONS.length - 1 ? "Press Enter for next question" : "Press Enter to see results";
+  }
+
+  function nextQuestion() {
+    current++;
+    if (current >= QUESTIONS.length) {
+      showResults();
+    } else {
+      submitBtn.textContent = "Submit";
+      loadQuestion();
+    }
+  }
+
+  function showResults() {
+    show(resultsScreen);
+
+    finalScore.textContent = score;
+
+    // Animate ring
+    const pct = score / QUESTIONS.length;
+    const circumference = 377;
+    setTimeout(() => {
+      ringFill.style.strokeDashoffset = circumference - pct * circumference;
+    }, 100);
+
+    // Messages
+    const msgs = [
+      { min: 10, title: "Perfect Score! 🎉", msg: "You're a genius — 10 out of 10!" },
+      { min: 8,  title: "Almost Perfect ⭐", msg: "Really impressive — just a couple slipped away." },
+      { min: 6,  title: "Great Job 👍",       msg: "Solid effort! You know your stuff." },
+      { min: 4,  title: "Good Try 💪",        msg: "Keep practicing — you're getting there." },
+      { min: 0,  title: "Keep Going 📚",      msg: "Every expert was once a beginner!" },
+    ];
+    const m = msgs.find(x => score >= x.min);
+    resultsTitle.textContent = m.title;
+    resultMessage.textContent = m.msg;
+  }
+
+  function startQuiz() {
+    current = 0;
+    score = 0;
+    submitBtn.textContent = "Submit";
+    ringFill.style.strokeDashoffset = 377;
+    show(quizScreen);
+    loadQuestion();
+  }
+
+  document.getElementById("startBtn").onclick   = startQuiz;
+  document.getElementById("restartBtn").onclick  = startQuiz;
+  document.getElementById("hubBtn").onclick = () => { window.location.href = "game_hub.html"; };
+
+  submitBtn.onclick = submitAnswer;
+
+  answerInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") submitAnswer();
+  });
+</script>
+</body>
+</html>
