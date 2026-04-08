@@ -1055,6 +1055,22 @@
         return;
       }
       const cmd = `${PY} ${ROOT}/${file}`;
+      if (app && app.pygame) {
+        // Try to launch via hub server in background
+        const onHub = location.hostname === "127.0.0.1" && location.port === "8765";
+        if (onHub) {
+          fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file })
+          }).catch(() => {});
+        }
+        // Always show command so user can paste in terminal
+        copyText(cmd).then(() =>
+          alert(`Run this in your terminal:\n\n${cmd}\n\n(Command copied to clipboard)`)
+        );
+        return;
+      }
       const local = location.protocol.startsWith("http") && (location.hostname === "localhost" || location.hostname === "127.0.0.1");
       if (!local) {
         copyRunCommand(file);
