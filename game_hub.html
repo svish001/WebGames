@@ -1043,12 +1043,19 @@
       return Promise.resolve();
     }
 
-    function copyRunCommand(file) {
+    function copyRunCommand(file, btn) {
       const cmd = `${PY} ${ROOT}/${file}`;
-      copyText(cmd).then(() => alert(`Copied command:\n\n${cmd}`));
+      copyText(cmd).then(() => {
+        if (btn) {
+          const orig = btn.textContent;
+          btn.textContent = "Copied!";
+          btn.disabled = true;
+          setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
+        }
+      });
     }
 
-    function runApp(file) {
+    function runApp(file, btn) {
       const app = apps.find(a => a.file === file);
       if (app && app.webUrl && !app.pygame) {
         window.open(app.webUrl, "_blank");
@@ -1065,10 +1072,15 @@
             body: JSON.stringify({ file })
           }).catch(() => {});
         }
-        // Always show command so user can paste in terminal
-        copyText(cmd).then(() =>
-          alert(`Run this in your terminal:\n\n${cmd}\n\n(Command copied to clipboard)`)
-        );
+        // Copy command and show feedback on button
+        copyText(cmd).then(() => {
+          if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = "Copied!";
+            btn.disabled = true;
+            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
+          }
+        });
         return;
       }
       const local = location.protocol.startsWith("http") && (location.hostname === "localhost" || location.hostname === "127.0.0.1");
@@ -1130,7 +1142,7 @@
           </div>
           <button class="featured-cta">Launch</button>
         `;
-        card.querySelector(".featured-cta").onclick = () => runApp(app.file);
+        card.querySelector(".featured-cta").onclick = function() { runApp(app.file, this); };
         card.querySelector(".fav-toggle").onclick = () => toggleFavorite(app.file);
         featuredRow.appendChild(card);
       });
@@ -1173,8 +1185,8 @@
         </div>
       `;
       card.querySelector(".fav-toggle").onclick = () => toggleFavorite(app.file);
-      card.querySelector(".card-action.solid").onclick = () => runApp(app.file);
-      card.querySelector(".card-action.ghost").onclick = () => copyRunCommand(app.file);
+      card.querySelector(".card-action.solid").onclick = function() { runApp(app.file, this); };
+      card.querySelector(".card-action.ghost").onclick = function() { copyRunCommand(app.file, this); };
       return card;
     }
 
