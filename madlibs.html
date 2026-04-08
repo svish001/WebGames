@@ -1,0 +1,77 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Mad Libs — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(580px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+p.sub{color:#b5aea3;font-size:.9rem}
+select{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;color:#f4f1eb;font-size:1rem;font-family:inherit;outline:none}
+select:focus{border-color:#c6a76a}
+select option{background:#111}
+.fields{display:flex;flex-direction:column;gap:.6rem}
+.field-row{display:flex;align-items:center;gap:.75rem}
+.field-label{font-size:.8rem;color:#c6a76a;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;min-width:110px}
+input[type=text]{flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.6rem .9rem;color:#f4f1eb;font-size:.95rem;font-family:inherit;outline:none}
+input:focus{border-color:#c6a76a}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem;font-size:.95rem;transition:transform .15s;width:100%}
+button:hover{transform:translateY(-1px)}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12)}
+.story-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:1.25rem;font-size:1.05rem;line-height:1.9;display:none}
+.story-box .hilite{color:#c6a76a;font-weight:700}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+label{font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+</style></head><body>
+<div class="card">
+  <h1>📖 Mad Libs</h1>
+  <p class="sub">Pick a story, fill every blank, then watch the magic happen!</p>
+  <div><label>Story Template</label>
+    <select id="templateSelect" onchange="loadTemplate()" style="margin-top:.4rem">
+      <option value="space">Space Mission 🚀</option>
+      <option value="haunted">Haunted Mansion 👻</option>
+      <option value="jungle">Jungle Quest 🐍</option>
+    </select>
+  </div>
+  <div class="fields" id="fields"></div>
+  <button class="btn-gold" onclick="generateStory()">Generate Story!</button>
+  <div class="story-box" id="storyBox"></div>
+  <button class="btn-ghost" onclick="reset()">Try Another</button>
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+const TEMPLATES={
+  space:{text:"Captain <name> launched the ship from <place>. With a <adjective> crew and a box of <plural_noun>, they faced a <adjective2> alien named <funny_name>. To survive, they had to <verb> while shouting '<exclamation>!'",blanks:['name','place','adjective','plural_noun','adjective2','funny_name','verb','exclamation']},
+  haunted:{text:"At midnight, <name> entered the <adjective> mansion carrying a <noun>. The hall smelled like <food>, and the walls started to <verb>. A ghost yelled '<exclamation>!' and chased them toward the <place>.",blanks:['name','adjective','noun','food','verb','exclamation','place']},
+  jungle:{text:"Explorer <name> crossed the <adjective> jungle with <number> maps and a <noun>. Suddenly, a giant <animal> appeared and started to <verb>. The team escaped by jumping into a <vehicle>.",blanks:['name','adjective','number','noun','animal','verb','vehicle']}
+};
+function loadTemplate(){
+  const t=TEMPLATES[document.getElementById('templateSelect').value];
+  const f=document.getElementById('fields');f.innerHTML='';
+  t.blanks.forEach(b=>{
+    const row=document.createElement('div');row.className='field-row';
+    const lbl=document.createElement('span');lbl.className='field-label';lbl.textContent=b.replace(/_/g,' ');
+    const inp=document.createElement('input');inp.type='text';inp.id='inp_'+b;inp.placeholder=b.replace(/_/g,' ')+'…';
+    row.appendChild(lbl);row.appendChild(inp);f.appendChild(row);
+  });
+  document.getElementById('storyBox').style.display='none';
+}
+function generateStory(){
+  const key=document.getElementById('templateSelect').value;
+  const t=TEMPLATES[key];
+  let story=t.text;
+  let allFilled=true;
+  t.blanks.forEach(b=>{
+    const v=document.getElementById('inp_'+b)?.value.trim()||'';
+    if(!v){allFilled=false;}
+    story=story.replace('<'+b+'>',`<span class="hilite">${v||'___'}</span>`);
+  });
+  if(!allFilled){alert('Please fill all the blanks!');return}
+  const box=document.getElementById('storyBox');
+  box.innerHTML=story;box.style.display='block';
+  box.scrollIntoView({behavior:'smooth'});
+}
+function reset(){document.getElementById('storyBox').style.display='none';loadTemplate()}
+loadTemplate();
+</script>
+</body></html>

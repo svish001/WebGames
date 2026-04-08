@@ -1,0 +1,90 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Number Guessing — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(460px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+p.sub{color:#b5aea3;font-size:.95rem}
+input[type=number],input[type=text]{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;color:#f4f1eb;font-size:1.1rem;font-family:inherit;outline:none;text-align:center}
+input:focus{border-color:#c6a76a}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem;font-size:.95rem;transition:transform .15s}
+button:hover:not(:disabled){transform:translateY(-1px)}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111;width:100%}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12);width:100%}
+.hint{text-align:center;font-size:1.1rem;font-weight:700;min-height:1.8rem}
+.hint.high{color:#ff453a}.hint.low{color:#ffd60a}.hint.win{color:#34c759}
+.history{font-size:.8rem;color:#7f786f;text-align:center;line-height:1.8}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+.stat{background:rgba(255,255,255,0.04);border-radius:10px;padding:.6rem;text-align:center}
+.stat strong{display:block;font-size:1rem;color:#c6a76a}
+.stat span{font-size:.65rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+label{font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+</style></head><body>
+<div class="card" id="app">
+  <h1>🔢 Number Guessing</h1>
+  <p class="sub">Pick a range, then guess the number!</p>
+  <div id="setupView">
+    <label>Range (1 to…)</label>
+    <input type="number" id="rangeInput" value="100" min="2" max="10000" style="margin-top:.4rem"/>
+    <button class="btn-gold" style="margin-top:.75rem" onclick="startGame()">Start Game</button>
+  </div>
+  <div id="gameView" style="display:none;flex-direction:column;gap:1rem">
+    <p id="rangeLabel" class="sub"></p>
+    <input type="number" id="guessInput" placeholder="Your guess…" onkeydown="if(event.key==='Enter')makeGuess()"/>
+    <button class="btn-gold" onclick="makeGuess()">Guess</button>
+    <div class="hint" id="hintMsg"></div>
+    <div class="history" id="historyList"></div>
+    <div class="stats">
+      <div class="stat"><strong id="guessCount">0</strong><span>Guesses</span></div>
+      <div class="stat"><strong id="bestStat">—</strong><span>Best</span></div>
+      <div class="stat"><strong id="gamesStat">0</strong><span>Games</span></div>
+    </div>
+    <button class="btn-ghost" onclick="startGame()">New Game</button>
+  </div>
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+let secret,guesses,topRange,best=null,games=0;
+function startGame(){
+  topRange=parseInt(document.getElementById('rangeInput').value)||100;
+  if(topRange<2){alert('Range must be at least 2');return}
+  secret=Math.floor(Math.random()*topRange)+1;
+  guesses=0;
+  document.getElementById('setupView').style.display='none';
+  const gv=document.getElementById('gameView');gv.style.display='flex';
+  document.getElementById('rangeLabel').textContent=`Guess 1 – ${topRange}`;
+  document.getElementById('hintMsg').textContent='';
+  document.getElementById('hintMsg').className='hint';
+  document.getElementById('historyList').textContent='';
+  document.getElementById('guessInput').value='';
+  document.getElementById('guessCount').textContent=0;
+  document.getElementById('guessInput').focus();
+  updateStats();
+}
+function makeGuess(){
+  const v=parseInt(document.getElementById('guessInput').value);
+  if(!v||v<1||v>topRange){alert(`Enter a number 1–${topRange}`);return}
+  guesses++;
+  document.getElementById('guessCount').textContent=guesses;
+  const h=document.getElementById('hintMsg');
+  const hist=document.getElementById('historyList');
+  const prev=hist.textContent;
+  hist.textContent=(prev?prev+' · ':'')+v;
+  document.getElementById('guessInput').value='';
+  if(v===secret){
+    h.textContent=`🎉 Correct! It was ${secret}. Guessed in ${guesses} tries!`;h.className='hint win';
+    games++;if(best===null||guesses<best)best=guesses;
+    updateStats();
+    setTimeout(()=>{document.getElementById('setupView').style.display='block';document.getElementById('gameView').style.display='none'},2200);
+  }else if(v>secret){h.textContent='📉 Too high!';h.className='hint high';}
+  else{h.textContent='📈 Too low!';h.className='hint low';}
+  document.getElementById('guessInput').focus();
+}
+function updateStats(){
+  document.getElementById('bestStat').textContent=best!==null?best+'':'—';
+  document.getElementById('gamesStat').textContent=games;
+}
+</script>
+</body></html>

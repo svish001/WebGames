@@ -1,0 +1,117 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Slot Machine — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
+h1{font-size:2rem;font-weight:800;letter-spacing:-0.02em;color:#c6a76a}
+.sub{color:#b5aea3;margin:.25rem 0 1.5rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(500px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);backdrop-filter:blur(20px)}
+.balance{font-size:1.1rem;color:#c6a76a;margin-bottom:1rem;text-align:center}
+.reels{display:flex;justify-content:center;gap:1rem;margin:1.5rem 0}
+.reel{width:90px;height:90px;border-radius:16px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:800;transition:transform 0.15s}
+.reel.spin{animation:spin 0.4s ease-in-out}
+@keyframes spin{0%{transform:translateY(-8px) scale(0.9)}50%{transform:translateY(4px) scale(1.05)}100%{transform:translateY(0) scale(1)}}
+.reel.A{color:#F5B700}.reel.B{color:#EF6F6C}.reel.C{color:#4ECDC4}.reel.D{color:#5C7AEA}
+.win-msg{text-align:center;min-height:1.8rem;font-size:1.1rem;font-weight:700;margin:.5rem 0}
+.win-msg.win{color:#34c759}.win-msg.lose{color:#ff453a}
+.controls{display:flex;flex-direction:column;gap:.75rem}
+.row{display:flex;gap:.75rem;align-items:center}
+label{font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+input[type=number]{flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.6rem 1rem;color:#f4f1eb;font-size:1rem;font-family:inherit;outline:none;width:100%}
+input:focus{border-color:#c6a76a}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem 1.5rem;font-size:.95rem;transition:transform .15s,background .15s}
+button:hover:not(:disabled){transform:translateY(-1px)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111;width:100%}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12);flex:1}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:1rem}
+.stat{background:rgba(255,255,255,0.04);border-radius:10px;padding:.75rem;text-align:center}
+.stat strong{display:block;font-size:1.1rem;color:#c6a76a}
+.stat span{font-size:.7rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+.back{display:block;text-align:center;margin-top:1rem;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+</style></head><body>
+<div class="card">
+  <h1>🎰 Slot Machine</h1>
+  <p class="sub">Match symbols to win big!</p>
+  <div class="balance">Balance: $<span id="bal">100</span></div>
+  <div class="reels">
+    <div class="reel" id="r0">🎰</div>
+    <div class="reel" id="r1">🎰</div>
+    <div class="reel" id="r2">🎰</div>
+  </div>
+  <div class="win-msg" id="msg"></div>
+  <div class="controls">
+    <div class="row"><label>Bet $</label><input type="number" id="bet" value="10" min="1" max="100"/></div>
+    <button class="btn-gold" id="spinBtn" onclick="spin()">SPIN</button>
+    <div class="row">
+      <button class="btn-ghost" onclick="setBet(1)">Min</button>
+      <button class="btn-ghost" onclick="setBet(100)">Max</button>
+      <button class="btn-ghost" onclick="resetGame()">Reset</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><strong id="spins">0</strong><span>Spins</span></div>
+    <div class="stat"><strong id="wins">0</strong><span>Wins</span></div>
+    <div class="stat"><strong id="best">$0</strong><span>Best Win</span></div>
+    <div class="stat"><strong id="net">$0</strong><span>Net</span></div>
+  </div>
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+const SYMBOLS=[{s:'🍇',v:6},{s:'🍊',v:5},{s:'🍋',v:4},{s:'💎',v:3}];
+const POOL=[0,0,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,3,3];
+let bal=100,spinsN=0,winsN=0,bestWin=0,startBal=100;
+
+function pick(){return SYMBOLS[POOL[Math.floor(Math.random()*POOL.length)]]}
+function setBet(v){document.getElementById('bet').value=v}
+
+function spin(){
+  const bet=parseInt(document.getElementById('bet').value)||10;
+  if(bet<1||bet>100){alert('Bet must be 1-100');return}
+  if(bet>bal){alert('Not enough balance!');return}
+  bal-=bet;spinsN++;
+  const reels=[pick(),pick(),pick()];
+  const ids=['r0','r1','r2'];
+  ids.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.textContent='⏳';
+    el.className='reel';
+    setTimeout(()=>{
+      el.textContent=reels[i].s;
+      el.classList.add('spin');
+      if(i===2)calcResult(reels,bet);
+    },(i+1)*200);
+  });
+  document.getElementById('msg').textContent='';
+  document.getElementById('msg').className='win-msg';
+  update();
+}
+
+function calcResult(reels,bet){
+  let win=0;
+  if(reels[0].s===reels[1].s&&reels[1].s===reels[2].s){win=reels[0].v*bet*3}
+  else if(reels[0].s===reels[1].s||reels[1].s===reels[2].s||reels[0].s===reels[2].s){win=reels[0].v*bet}
+  const msg=document.getElementById('msg');
+  if(win>0){
+    bal+=win;winsN++;
+    if(win>bestWin)bestWin=win;
+    msg.textContent=`🎉 You won $${win}!`;msg.className='win-msg win';
+  }else{
+    msg.textContent='No match — try again!';msg.className='win-msg lose';
+  }
+  update();
+}
+
+function update(){
+  document.getElementById('bal').textContent=bal;
+  document.getElementById('spins').textContent=spinsN;
+  document.getElementById('wins').textContent=winsN;
+  document.getElementById('best').textContent='$'+bestWin;
+  document.getElementById('net').textContent=(bal-startBal>=0?'+':'')+'$'+(bal-startBal);
+  document.getElementById('spinBtn').disabled=bal<=0;
+  if(bal<=0)document.getElementById('msg').textContent='Game over! Reset to play again.';
+}
+
+function resetGame(){bal=100;spinsN=0;winsN=0;bestWin=0;startBal=100;['r0','r1','r2'].forEach(id=>document.getElementById(id).textContent='🎰');document.getElementById('msg').textContent='';document.getElementById('msg').className='win-msg';update()}
+</script>
+</body></html>

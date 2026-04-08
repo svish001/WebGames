@@ -1,0 +1,70 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Rock Paper Scissors — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(480px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1.25rem;text-align:center}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+.arena{display:flex;align-items:center;justify-content:space-around;margin:.5rem 0}
+.player{display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.player span{font-size:.75rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+.choice{font-size:4rem;background:rgba(255,255,255,0.05);border-radius:16px;padding:.5rem 1rem;min-width:100px;border:1px solid rgba(255,255,255,0.08)}
+.vs{font-size:1.2rem;font-weight:800;color:#7f786f}
+.result-msg{font-size:1.1rem;font-weight:700;min-height:1.6rem}
+.result-msg.win{color:#34c759}.result-msg.lose{color:#ff453a}.result-msg.draw{color:#ffd60a}
+.btns{display:flex;gap:.75rem;justify-content:center}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem 1.5rem;font-size:1.3rem;transition:transform .15s,box-shadow .15s;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12)}
+button:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(198,167,106,.3)}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.5rem}
+.stat{background:rgba(255,255,255,0.04);border-radius:10px;padding:.6rem}
+.stat strong{display:block;font-size:1rem;color:#c6a76a}
+.stat span{font-size:.65rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+.history{font-size:.75rem;color:#7f786f;line-height:2;max-height:60px;overflow:hidden}
+.back{display:block;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+</style></head><body>
+<div class="card">
+  <h1>✂️ Rock Paper Scissors</h1>
+  <div class="arena">
+    <div class="player"><span>You</span><div class="choice" id="userChoice">❓</div></div>
+    <div class="vs">VS</div>
+    <div class="player"><span>Computer</span><div class="choice" id="cpuChoice">❓</div></div>
+  </div>
+  <div class="result-msg" id="resultMsg">Choose your move!</div>
+  <div class="btns">
+    <button onclick="play('rock')" title="Rock">🪨</button>
+    <button onclick="play('paper')" title="Paper">📄</button>
+    <button onclick="play('scissors')" title="Scissors">✂️</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><strong id="wStat">0</strong><span>Wins</span></div>
+    <div class="stat"><strong id="lStat">0</strong><span>Losses</span></div>
+    <div class="stat"><strong id="dStat">0</strong><span>Draws</span></div>
+    <div class="stat"><strong id="stStat">0</strong><span>Streak</span></div>
+  </div>
+  <div class="history" id="hist"></div>
+  <button onclick="resetGame()" style="font-size:.85rem;padding:.6rem 1.2rem">Reset</button>
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+const EM={rock:'🪨',paper:'📄',scissors:'✂️'};
+const WINS={rock:'scissors',paper:'rock',scissors:'paper'};
+let w=0,l=0,d=0,streak=0,bestStreak=0;
+function play(user){
+  const opts=['rock','paper','scissors'];
+  const cpu=opts[Math.floor(Math.random()*3)];
+  document.getElementById('userChoice').textContent=EM[user];
+  document.getElementById('cpuChoice').textContent=EM[cpu];
+  const msg=document.getElementById('resultMsg');
+  if(user===cpu){d++;streak=0;msg.textContent='🤝 Draw!';msg.className='result-msg draw';}
+  else if(WINS[user]===cpu){w++;streak++;bestStreak=Math.max(streak,bestStreak);msg.textContent='🎉 You win!';msg.className='result-msg win';}
+  else{l++;streak=0;msg.textContent='😔 You lose!';msg.className='result-msg lose';}
+  const hist=document.getElementById('hist');
+  hist.textContent=`${EM[user]} vs ${EM[cpu]} · ${hist.textContent}`.slice(0,120);
+  document.getElementById('wStat').textContent=w;
+  document.getElementById('lStat').textContent=l;
+  document.getElementById('dStat').textContent=d;
+  document.getElementById('stStat').textContent=streak;
+}
+function resetGame(){w=0;l=0;d=0;streak=0;bestStreak=0;['wStat','lStat','dStat','stStat'].forEach(id=>document.getElementById(id).textContent=0);document.getElementById('userChoice').textContent='❓';document.getElementById('cpuChoice').textContent='❓';document.getElementById('resultMsg').textContent='Choose your move!';document.getElementById('resultMsg').className='result-msg';document.getElementById('hist').textContent='';}
+</script>
+</body></html>

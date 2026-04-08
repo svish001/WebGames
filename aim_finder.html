@@ -1,0 +1,151 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Aim Trainer — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;flex-direction:column;gap:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(700px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+p.sub{color:#b5aea3;font-size:.9rem}
+.screen{display:none;flex-direction:column;gap:1rem}
+.screen.active{display:flex}
+.hud{display:flex;justify-content:space-between;align-items:center;font-size:.85rem}
+.hud-item strong{display:block;font-size:1.2rem;color:#c6a76a;font-weight:800}
+.hud-item span{font-size:.65rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+canvas{border-radius:16px;background:#0d1117;cursor:crosshair;display:block;width:100%;touch-action:none}
+.timer-bar-wrap{background:rgba(255,255,255,0.08);border-radius:99px;height:6px;overflow:hidden}
+.timer-bar{height:100%;background:linear-gradient(90deg,#c6a76a,#e8c87a);border-radius:99px;transition:width .1s linear}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem;font-size:.95rem;transition:transform .15s;width:100%}
+button:hover:not(:disabled){transform:translateY(-1px)}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}
+.stat{background:rgba(255,255,255,0.04);border-radius:10px;padding:.6rem;text-align:center}
+.stat strong{display:block;font-size:1rem;color:#c6a76a}
+.stat span{font-size:.65rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;color:#f4f1eb;font-size:1rem;font-family:inherit;outline:none;width:100%}
+select:focus{border-color:#c6a76a}
+select option{background:#111}
+label{font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+</style></head><body>
+<div class="card">
+  <h1>🎯 Aim Trainer</h1>
+  <div class="screen active" id="setupScreen">
+    <p class="sub">Click targets as fast as you can. Train your aim and reaction time!</p>
+    <div><label>Duration</label>
+      <select id="duration" style="margin-top:.4rem">
+        <option value="15">15 seconds</option>
+        <option value="30" selected>30 seconds</option>
+        <option value="60">60 seconds</option>
+      </select>
+    </div>
+    <div><label>Target Size</label>
+      <select id="targetSize" style="margin-top:.4rem">
+        <option value="40">Small (harder)</option>
+        <option value="55" selected>Medium</option>
+        <option value="75">Large (easier)</option>
+      </select>
+    </div>
+    <button class="btn-gold" onclick="startGame()">Start Training!</button>
+  </div>
+  <div class="screen" id="gameScreen">
+    <div class="hud">
+      <div class="hud-item"><strong id="hitsDisp">0</strong><span>Hits</span></div>
+      <div class="hud-item"><strong id="missesDisp">0</strong><span>Misses</span></div>
+      <div class="hud-item"><strong id="accDisp">—</strong><span>Accuracy</span></div>
+      <div class="hud-item"><strong id="timeDisp">30</strong><span>Seconds</span></div>
+    </div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+    <canvas id="gameCanvas" height="340"></canvas>
+  </div>
+  <div class="screen" id="resultsScreen">
+    <div style="text-align:center;font-size:3rem" id="resultEmoji">🎯</div>
+    <div style="text-align:center"><strong id="resultTitle" style="font-size:1.3rem"></strong><br/><span style="color:#b5aea3" id="resultSub"></span></div>
+    <div class="stats">
+      <div class="stat"><strong id="rHits">0</strong><span>Hits</span></div>
+      <div class="stat"><strong id="rMisses">0</strong><span>Misses</span></div>
+      <div class="stat"><strong id="rAcc">0%</strong><span>Accuracy</span></div>
+      <div class="stat"><strong id="rReact">0ms</strong><span>Avg React</span></div>
+    </div>
+    <button class="btn-gold" onclick="startGame()">Play Again</button>
+    <button class="btn-ghost" onclick="show('setupScreen')">Change Settings</button>
+  </div>
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+let hits=0,misses=0,gameTimer=null,targetTimer=null,totalSecs=30,secsLeft=30,targetRadius=55;
+let targetX=0,targetY=0,reactTimes=[],lastSpawn=0,running=false;
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+
+function show(id){['setupScreen','gameScreen','resultsScreen'].forEach(s=>{const el=document.getElementById(s);el.classList.remove('active');el.style.display='none'});const el=document.getElementById(id);el.classList.add('active');el.style.display='flex'}
+
+function startGame(){
+  hits=0;misses=0;reactTimes=[];running=false;
+  totalSecs=+document.getElementById('duration').value;
+  secsLeft=totalSecs;targetRadius=+document.getElementById('targetSize').value;
+  document.getElementById('hitsDisp').textContent='0';
+  document.getElementById('missesDisp').textContent='0';
+  document.getElementById('accDisp').textContent='—';
+  document.getElementById('timeDisp').textContent=totalSecs;
+  document.getElementById('timerBar').style.width='100%';
+  document.getElementById('timerBar').style.background='linear-gradient(90deg,#c6a76a,#e8c87a)';
+  clearInterval(gameTimer);clearTimeout(targetTimer);
+  show('gameScreen');
+  resizeCanvas();
+  setTimeout(()=>{running=true;spawnTarget();gameTimer=setInterval(tick,1000)},500);
+}
+function resizeCanvas(){canvas.width=canvas.offsetWidth;canvas.height=340}
+function spawnTarget(){
+  if(!running)return;
+  const r=targetRadius;
+  targetX=r+Math.random()*(canvas.width-r*2);
+  targetY=r+Math.random()*(canvas.height-r*2);
+  lastSpawn=Date.now();
+  drawTarget();
+  targetTimer=setTimeout(()=>{if(running){misses++;updateHud();spawnTarget()}},2000+Math.random()*1000);
+}
+function drawTarget(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const r=targetRadius;
+  ctx.beginPath();ctx.arc(targetX,targetY,r,0,Math.PI*2);ctx.fillStyle='rgba(198,167,106,0.15)';ctx.fill();
+  ctx.beginPath();ctx.arc(targetX,targetY,r*0.65,0,Math.PI*2);ctx.fillStyle='rgba(198,167,106,0.35)';ctx.fill();
+  ctx.beginPath();ctx.arc(targetX,targetY,r*0.3,0,Math.PI*2);ctx.fillStyle='#c6a76a';ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1.5;
+  for(const fr of[1,0.65,0.3]){ctx.beginPath();ctx.arc(targetX,targetY,r*fr,0,Math.PI*2);ctx.stroke()}
+}
+function tick(){
+  secsLeft--;
+  document.getElementById('timeDisp').textContent=secsLeft;
+  document.getElementById('timerBar').style.width=(secsLeft/totalSecs*100)+'%';
+  if(secsLeft<=5)document.getElementById('timerBar').style.background='#ff453a';
+  if(secsLeft<=0){clearInterval(gameTimer);clearTimeout(targetTimer);running=false;ctx.clearRect(0,0,canvas.width,canvas.height);showResults();}
+}
+function updateHud(){
+  document.getElementById('hitsDisp').textContent=hits;
+  document.getElementById('missesDisp').textContent=misses;
+  const total=hits+misses;document.getElementById('accDisp').textContent=total?Math.round(hits/total*100)+'%':'—';
+}
+canvas.addEventListener('click',e=>{
+  if(!running)return;
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=canvas.width/rect.width;
+  const x=(e.clientX-rect.left)*scaleX;
+  const y=(e.clientY-rect.top)*scaleX;
+  const dx=x-targetX,dy=y-targetY;
+  if(Math.sqrt(dx*dx+dy*dy)<=targetRadius){
+    hits++;reactTimes.push(Date.now()-lastSpawn);clearTimeout(targetTimer);updateHud();
+    ctx.clearRect(0,0,canvas.width,canvas.height);setTimeout(spawnTarget,100);
+  }else{misses++;updateHud();}
+});
+function showResults(){
+  const total=hits+misses;const acc=total?Math.round(hits/total*100):0;const avgReact=reactTimes.length?Math.round(reactTimes.reduce((a,b)=>a+b,0)/reactTimes.length):0;
+  document.getElementById('rHits').textContent=hits;document.getElementById('rMisses').textContent=misses;document.getElementById('rAcc').textContent=acc+'%';document.getElementById('rReact').textContent=avgReact+'ms';
+  document.getElementById('resultEmoji').textContent=acc>=80?'🏆':acc>=60?'⭐':'💪';
+  document.getElementById('resultTitle').textContent=acc>=80?'Top Tier Aim!':acc>=60?'Solid Aim!':'Keep Practicing!';
+  document.getElementById('resultSub').textContent=`${hits} hits · ${acc}% accuracy · ${avgReact}ms avg reaction`;
+  show('resultsScreen');
+}
+window.addEventListener('resize',()=>{if(running||document.getElementById('gameScreen').classList.contains('active'))resizeCanvas()});
+</script>
+</body></html>

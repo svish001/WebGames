@@ -1,0 +1,112 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Currency Converter — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(480px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1.25rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+p.sub{color:#b5aea3;font-size:.9rem}
+select,input[type=number]{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;color:#f4f1eb;font-size:1rem;font-family:inherit;outline:none}
+select:focus,input:focus{border-color:#c6a76a}
+select option{background:#111}
+.row{display:flex;gap:.75rem;align-items:flex-end}
+.row>div{flex:1}
+label{font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.4rem}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem;font-size:.95rem;transition:transform .15s;width:100%}
+button:hover:not(:disabled){transform:translateY(-1px)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12)}
+.result-box{background:rgba(198,167,106,.08);border:1px solid rgba(198,167,106,.3);border-radius:14px;padding:1.25rem;text-align:center;display:none}
+.result-amount{font-size:2.5rem;font-weight:800;color:#c6a76a;letter-spacing:-.03em}
+.result-sub{font-size:.85rem;color:#b5aea3;margin-top:.3rem}
+.rate-note{font-size:.75rem;color:#7f786f;text-align:center}
+.history{display:flex;flex-direction:column;gap:.4rem;max-height:160px;overflow-y:auto}
+.history-item{display:flex;justify-content:space-between;background:rgba(255,255,255,0.04);border-radius:8px;padding:.5rem .75rem;font-size:.85rem}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+.loading{text-align:center;color:#7f786f;font-size:.85rem}
+.swap-btn{padding:.75rem 1rem;width:auto;flex-shrink:0;border-radius:10px}
+</style></head><body>
+<div class="card">
+  <h1>💱 Currency Converter</h1>
+  <p class="sub" id="rateNote">Loading live rates…</p>
+
+  <div class="row">
+    <div><label>Amount</label><input type="number" id="amount" value="100" min="0" step="any"/></div>
+    <button class="btn-ghost swap-btn" onclick="swapCurrencies()" title="Swap">⇄</button>
+  </div>
+
+  <div class="row">
+    <div><label>From</label>
+      <select id="fromCur"></select>
+    </div>
+    <div><label>To</label>
+      <select id="toCur"></select>
+    </div>
+  </div>
+
+  <button class="btn-gold" onclick="convert()" id="convertBtn">Convert</button>
+
+  <div class="result-box" id="resultBox">
+    <div class="result-amount" id="resultAmount"></div>
+    <div class="result-sub" id="resultSub"></div>
+  </div>
+
+  <div id="historyWrap" style="display:none">
+    <div style="font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem">Recent Conversions</div>
+    <div class="history" id="historyList"></div>
+  </div>
+
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+const CURRENCIES=['USD','EUR','GBP','INR','JPY','CAD','AUD','CHF'];
+const FALLBACK={USD:1,EUR:0.92,GBP:0.79,INR:83.2,JPY:149.5,CAD:1.36,AUD:1.53,CHF:0.88};
+let rates=null,history=[];
+
+function populateSelects(){
+  const f=document.getElementById('fromCur'),t=document.getElementById('toCur');
+  CURRENCIES.forEach(c=>{f.innerHTML+=`<option value="${c}">${c}</option>`;t.innerHTML+=`<option value="${c}">${c}</option>`});
+  f.value='USD';t.value='EUR';
+}
+
+async function fetchRates(){
+  try{
+    const r=await fetch('https://api.frankfurter.app/latest?from=USD');
+    const d=await r.json();
+    rates={USD:1,...d.rates};
+    document.getElementById('rateNote').textContent='Live rates via Frankfurter API — updated today';
+  }catch(e){
+    rates=FALLBACK;
+    document.getElementById('rateNote').textContent='Using offline fallback rates (live API unavailable)';
+  }
+}
+
+function convert(){
+  if(!rates){alert('Rates not loaded yet, please wait');return}
+  const from=document.getElementById('fromCur').value;
+  const to=document.getElementById('toCur').value;
+  const amt=parseFloat(document.getElementById('amount').value)||0;
+  const usd=amt/rates[from];
+  const result=usd*rates[to];
+  const formatted=result.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+  document.getElementById('resultAmount').textContent=`${formatted} ${to}`;
+  const rate=(rates[to]/rates[from]).toFixed(6);
+  document.getElementById('resultSub').textContent=`1 ${from} = ${rate} ${to} · ${amt.toLocaleString()} ${from}`;
+  document.getElementById('resultBox').style.display='block';
+  history.unshift({from,to,amt,result:formatted});
+  if(history.length>8)history.pop();
+  renderHistory();
+}
+
+function swapCurrencies(){const f=document.getElementById('fromCur'),t=document.getElementById('toCur');const tmp=f.value;f.value=t.value;t.value=tmp;convert()}
+
+function renderHistory(){
+  if(!history.length)return;
+  document.getElementById('historyWrap').style.display='block';
+  document.getElementById('historyList').innerHTML=history.map(h=>`<div class="history-item"><span>${h.amt} ${h.from}</span><span style="color:#c6a76a">→ ${h.result} ${h.to}</span></div>`).join('');
+}
+
+populateSelects();fetchRates();
+</script>
+</body></html>

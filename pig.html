@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>PIG Dice — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(520px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+p.sub{color:#b5aea3;font-size:.9rem}
+.scores{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.score-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:1rem;text-align:center}
+.score-box.active{border-color:#c6a76a;background:rgba(198,167,106,.08)}
+.score-box strong{font-size:2rem;display:block;color:#c6a76a}
+.score-box span{font-size:.75rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+.score-box small{display:block;font-size:.85rem;color:#b5aea3;margin-top:.25rem}
+.dice{font-size:5rem;text-align:center;min-height:6rem;line-height:6rem}
+.turn-score{text-align:center;font-size:1rem;color:#b5aea3}
+.turn-score strong{color:#f4f1eb;font-size:1.3rem}
+.btns{display:flex;gap:.75rem}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem 1.5rem;font-size:.95rem;transition:transform .15s;flex:1}
+button:hover:not(:disabled){transform:translateY(-1px)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12)}
+.log{font-size:.8rem;color:#7f786f;line-height:2;max-height:80px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.06);padding-top:.75rem}
+.msg{text-align:center;font-size:1rem;font-weight:700;color:#34c759;min-height:1.4rem}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+</style></head><body>
+<div class="card">
+  <h1>🐷 PIG Dice</h1>
+  <p class="sub">First to 50 wins. Roll to score, but rolling a 1 loses your turn score!</p>
+  <div class="scores">
+    <div class="score-box" id="p1box">
+      <span>Player 1</span>
+      <strong id="p1total">0</strong>
+      <small>Turn: <span id="p1turn">0</span></small>
+    </div>
+    <div class="score-box" id="p2box">
+      <span>Player 2 (CPU)</span>
+      <strong id="p2total">0</strong>
+      <small>Turn: <span id="p2turn">0</span></small>
+    </div>
+  </div>
+  <div class="dice" id="diceDisplay">🎲</div>
+  <div class="turn-score">Turn score: <strong id="turnScore">0</strong></div>
+  <div class="msg" id="msg"></div>
+  <div class="btns">
+    <button class="btn-gold" id="rollBtn" onclick="rollDice()">Roll</button>
+    <button class="btn-ghost" id="holdBtn" onclick="hold()">Hold</button>
+  </div>
+  <div class="log" id="log"></div>
+  <button class="btn-ghost" onclick="resetGame()" style="margin-top:.25rem">New Game</button>
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+const DICE=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+let scores=[0,0],turn=0,turnScore=0,gameOver=false;
+function log(msg){const l=document.getElementById('log');l.innerHTML='<div>'+msg+'</div>'+l.innerHTML}
+function updateUI(){
+  document.getElementById('p1total').textContent=scores[0];
+  document.getElementById('p2total').textContent=scores[1];
+  document.getElementById('p1turn').textContent=turn===0?turnScore:0;
+  document.getElementById('p2turn').textContent=turn===1?turnScore:0;
+  document.getElementById('turnScore').textContent=turnScore;
+  document.getElementById('p1box').className='score-box'+(turn===0?' active':'');
+  document.getElementById('p2box').className='score-box'+(turn===1?' active':'');
+}
+function rollDice(){
+  if(gameOver)return;
+  const r=Math.floor(Math.random()*6)+1;
+  document.getElementById('diceDisplay').textContent=DICE[r];
+  if(r===1){
+    log(`P${turn+1} rolled 1 — lost turn score!`);
+    turnScore=0;switchTurn();
+  }else{
+    turnScore+=r;
+    log(`P${turn+1} rolled ${r}, turn total: ${turnScore}`);
+    updateUI();
+  }
+  if(turn===1&&!gameOver)setTimeout(cpuThink,600);
+}
+function hold(){
+  if(gameOver||turn===1)return;
+  scores[0]+=turnScore;
+  log(`Player 1 holds. Total: ${scores[0]}`);
+  turnScore=0;
+  if(scores[0]>=50){endGame(0);return}
+  switchTurn();
+}
+function switchTurn(){turn=1-turn;turnScore=0;updateUI();if(turn===1&&!gameOver)setTimeout(cpuThink,700)}
+function cpuThink(){
+  if(gameOver)return;
+  // CPU holds if turn score ≥ 20 or total+turn ≥ 50
+  if(turnScore>=20||scores[1]+turnScore>=50){
+    scores[1]+=turnScore;
+    log(`CPU holds. Total: ${scores[1]}`);
+    turnScore=0;
+    if(scores[1]>=50){endGame(1);return}
+    switchTurn();
+  }else{rollDice();}
+}
+function endGame(winner){
+  gameOver=true;
+  document.getElementById('msg').textContent=winner===0?'🎉 Player 1 wins!':'🤖 CPU wins!';
+  document.getElementById('rollBtn').disabled=true;
+  document.getElementById('holdBtn').disabled=true;
+  updateUI();
+}
+function resetGame(){scores=[0,0];turn=0;turnScore=0;gameOver=false;document.getElementById('diceDisplay').textContent='🎲';document.getElementById('msg').textContent='';document.getElementById('rollBtn').disabled=false;document.getElementById('holdBtn').disabled=false;document.getElementById('log').innerHTML='';updateUI()}
+updateUI();
+</script>
+</body></html>

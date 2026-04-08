@@ -1,0 +1,102 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Timer & Clock — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(440px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+.tabs{display:flex;gap:.5rem}
+.tab{flex:1;padding:.6rem;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);cursor:pointer;text-align:center;font-size:.9rem;font-family:inherit;color:#b5aea3;font-weight:600;transition:.15s}
+.tab.active{background:#c6a76a;color:#111;border-color:#c6a76a}
+.pane{display:none;flex-direction:column;gap:1rem}
+.pane.active{display:flex}
+.big-time{font-size:4rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:-.04em;font-family:'Courier New',monospace}
+.time-inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+.time-inputs input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.6rem;color:#f4f1eb;font-size:1rem;font-family:'Courier New',monospace;text-align:center;outline:none;width:100%}
+.time-inputs input:focus{border-color:#c6a76a}
+.time-inputs label{display:block;font-size:.65rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-top:.25rem}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.8rem;font-size:.9rem;transition:transform .15s;width:100%}
+button:hover:not(:disabled){transform:translateY(-1px)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12)}
+.btn-red{background:#ff453a;color:#fff}
+.laps{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:.3rem}
+.lap{display:flex;justify-content:space-between;background:rgba(255,255,255,0.04);border-radius:8px;padding:.5rem .75rem;font-size:.85rem;font-family:'Courier New',monospace}
+.ring-wrap{display:flex;justify-content:center;align-items:center}
+.timer-bar-wrap{background:rgba(255,255,255,0.08);border-radius:99px;height:6px;overflow:hidden}
+.timer-bar{height:100%;background:linear-gradient(90deg,#c6a76a,#e8c87a);border-radius:99px;transition:width .5s linear}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;margin-top:.5rem}
+.back:hover{color:#c6a76a}
+.alert{text-align:center;font-size:1.1rem;font-weight:700;color:#ff453a;min-height:1.5rem}
+</style></head><body>
+<div class="card">
+  <h1>⏱ Timer & Clock</h1>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('countdown')">Countdown</button>
+    <button class="tab" onclick="switchTab('stopwatch')">Stopwatch</button>
+  </div>
+
+  <!-- COUNTDOWN -->
+  <div class="pane active" id="countdownPane">
+    <div class="time-inputs">
+      <div><input type="number" id="cdH" value="0" min="0" max="23" placeholder="0"/><label>Hours</label></div>
+      <div><input type="number" id="cdM" value="1" min="0" max="59" placeholder="0"/><label>Minutes</label></div>
+      <div><input type="number" id="cdS" value="0" min="0" max="59" placeholder="0"/><label>Seconds</label></div>
+    </div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="cdBar" style="width:0%"></div></div>
+    <div class="big-time" id="cdDisplay">00:01:00</div>
+    <div class="alert" id="cdAlert"></div>
+    <div class="btns">
+      <button class="btn-gold" id="cdStartBtn" onclick="cdToggle()">Start</button>
+      <button class="btn-ghost" onclick="cdReset()">Reset</button>
+    </div>
+  </div>
+
+  <!-- STOPWATCH -->
+  <div class="pane" id="stopwatchPane">
+    <div class="big-time" id="swDisplay">00:00:00.0</div>
+    <div class="btns">
+      <button class="btn-gold" id="swStartBtn" onclick="swToggle()">Start</button>
+      <button class="btn-ghost" onclick="swLap()" id="swLapBtn" disabled>Lap</button>
+    </div>
+    <div class="btns">
+      <button class="btn-red" onclick="swReset()">Reset</button>
+      <div></div>
+    </div>
+    <div class="laps" id="lapList"></div>
+  </div>
+
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+// Tab
+function switchTab(t){document.querySelectorAll('.tab').forEach((b,i)=>{b.classList.toggle('active',['countdown','stopwatch'][i]===t)});document.getElementById('countdownPane').classList.toggle('active',t==='countdown');document.getElementById('stopwatchPane').classList.toggle('active',t==='stopwatch')}
+
+// Countdown
+let cdInterval=null,cdTotalSecs=0,cdRemaining=0,cdRunning=false;
+function cdGetInput(){return (+document.getElementById('cdH').value||0)*3600+(+document.getElementById('cdM').value||0)*60+(+document.getElementById('cdS').value||0)}
+function cdFmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
+function cdUpdate(){document.getElementById('cdDisplay').textContent=cdFmt(cdRemaining);document.getElementById('cdBar').style.width=cdTotalSecs?(cdRemaining/cdTotalSecs*100)+'%':'0%';if(cdRemaining<=10)document.getElementById('cdBar').style.background='#ff453a';else document.getElementById('cdBar').style.background='linear-gradient(90deg,#c6a76a,#e8c87a)'}
+function cdToggle(){
+  if(cdRunning){clearInterval(cdInterval);cdRunning=false;document.getElementById('cdStartBtn').textContent='Resume';return}
+  if(!cdRemaining){cdTotalSecs=cdGetInput();cdRemaining=cdTotalSecs;if(!cdRemaining){alert('Set a time first!');return}}
+  document.getElementById('cdAlert').textContent='';
+  document.getElementById('cdStartBtn').textContent='Pause';
+  cdRunning=true;
+  cdInterval=setInterval(()=>{cdRemaining--;cdUpdate();if(cdRemaining<=0){clearInterval(cdInterval);cdRunning=false;document.getElementById('cdStartBtn').textContent='Start';document.getElementById('cdAlert').textContent="⏰ Time's up!";try{new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play()}catch(e){}}},1000);
+  cdUpdate();
+}
+function cdReset(){clearInterval(cdInterval);cdRunning=false;cdRemaining=0;document.getElementById('cdStartBtn').textContent='Start';document.getElementById('cdAlert').textContent='';document.getElementById('cdBar').style.width='0%';cdUpdate()}
+
+// Stopwatch
+let swStart=null,swElapsed=0,swRunning=false,swInterval=null,swLaps=[],swLapStart=0;
+function swFmt(ms){const t=ms/1000,s=Math.floor(t%60),m=Math.floor(t/60%60),h=Math.floor(t/3600),d=Math.floor((t%1)*10);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`}
+function swToggle(){
+  if(swRunning){swElapsed+=Date.now()-swStart;clearInterval(swInterval);swRunning=false;document.getElementById('swStartBtn').textContent='Resume';}
+  else{swStart=Date.now();swRunning=true;document.getElementById('swStartBtn').textContent='Stop';document.getElementById('swLapBtn').disabled=false;swInterval=setInterval(()=>{document.getElementById('swDisplay').textContent=swFmt(swElapsed+Date.now()-swStart)},100);}
+}
+function swLap(){const cur=swElapsed+Date.now()-swStart;const lapTime=cur-swLapStart;swLapStart=cur;swLaps.push({n:swLaps.length+1,split:swFmt(lapTime),total:swFmt(cur)});const l=document.getElementById('lapList');l.innerHTML=swLaps.slice().reverse().map(lp=>`<div class="lap"><span>Lap ${lp.n}</span><span>${lp.split}</span><span style="color:#7f786f">${lp.total}</span></div>`).join('')}
+function swReset(){clearInterval(swInterval);swRunning=false;swElapsed=0;swStart=null;swLaps=[];swLapStart=0;document.getElementById('swDisplay').textContent='00:00:00.0';document.getElementById('swStartBtn').textContent='Start';document.getElementById('swLapBtn').disabled=true;document.getElementById('lapList').innerHTML=''}
+</script>
+</body></html>

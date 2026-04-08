@@ -1,0 +1,128 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>NBA Trivia — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(520px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+p.sub{color:#b5aea3;font-size:.9rem}
+.screen{display:none;flex-direction:column;gap:1rem}
+.screen.active{display:flex}
+.q-num{font-size:.75rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+.question{font-size:1.15rem;font-weight:700;line-height:1.5;min-height:3.5rem}
+.options{display:flex;flex-direction:column;gap:.5rem}
+.option-btn{padding:.8rem 1.1rem;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f4f1eb;font-family:inherit;font-size:.95rem;cursor:pointer;text-align:left;transition:.15s}
+.option-btn:hover:not(:disabled){background:rgba(198,167,106,.12);border-color:#c6a76a}
+.option-btn.correct{background:rgba(52,199,89,.15);border-color:#34c759;color:#34c759}
+.option-btn.wrong{background:rgba(255,69,58,.12);border-color:#ff453a;color:#ff453a}
+.option-btn:disabled{cursor:not-allowed;opacity:.7}
+.feedback{font-size:.9rem;font-weight:700;min-height:1.3rem}
+.feedback.ok{color:#34c759}.feedback.bad{color:#ff453a}
+.timer-bar-wrap{background:rgba(255,255,255,0.08);border-radius:99px;height:5px;overflow:hidden}
+.timer-bar{height:100%;background:linear-gradient(90deg,#c6a76a,#e8c87a);border-radius:99px;transition:width .1s linear}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+.stat{background:rgba(255,255,255,0.04);border-radius:10px;padding:.6rem;text-align:center}
+.stat strong{display:block;font-size:1rem;color:#c6a76a}
+.stat span{font-size:.65rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em}
+button.main-btn{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem;font-size:.95rem;transition:transform .15s;width:100%}
+button.main-btn:hover{transform:translateY(-1px)}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#f4f1eb;border:1px solid rgba(255,255,255,0.12)}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+</style></head><body>
+<div class="card">
+  <h1>🏀 NBA Trivia</h1>
+  <div class="screen active" id="setupScreen">
+    <p class="sub">Test your basketball IQ with 10 NBA questions. Beat the shot clock!</p>
+    <button class="main-btn btn-gold" onclick="startGame()">Tip Off!</button>
+  </div>
+  <div class="screen" id="gameScreen">
+    <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#7f786f"><span id="qCounter">1 / 10</span><span id="timerLabel">20s</span></div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+    <div class="q-num" id="qNum">Question 1</div>
+    <div class="question" id="questionText"></div>
+    <div class="options" id="optionsDiv"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="stats">
+      <div class="stat"><strong id="scoreDisp">0</strong><span>Score</span></div>
+      <div class="stat"><strong id="rightDisp">0</strong><span>Correct</span></div>
+      <div class="stat"><strong id="wrongDisp">0</strong><span>Wrong</span></div>
+    </div>
+  </div>
+  <div class="screen" id="resultsScreen">
+    <div style="text-align:center;font-size:3rem" id="rEmoji">🏆</div>
+    <div style="text-align:center"><strong id="rTitle" style="font-size:1.3rem"></strong><br/><span style="color:#b5aea3" id="rSub"></span></div>
+    <div class="stats">
+      <div class="stat"><strong id="rScore">0</strong><span>Score</span></div>
+      <div class="stat"><strong id="rRight">0</strong><span>Correct</span></div>
+      <div class="stat"><strong id="rPct">0%</strong><span>Grade</span></div>
+    </div>
+    <button class="main-btn btn-gold" onclick="startGame()">Play Again</button>
+  </div>
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+const ALL_Q=[
+{q:"Which player has won the most NBA Championships?",o:["Bill Russell","Michael Jordan","LeBron James","Kareem Abdul-Jabbar"],a:0},
+{q:"Michael Jordan averaged how many points per game in his career?",o:["25.4","28.6","30.1","31.5"],a:2},
+{q:"Which franchise has the most NBA Championships?",o:["Chicago Bulls","Golden State Warriors","Boston Celtics","Los Angeles Lakers"],a:2},
+{q:"Who is the NBA's all-time leading scorer?",o:["Kareem Abdul-Jabbar","Michael Jordan","LeBron James","Wilt Chamberlain"],a:2},
+{q:"In what year was the NBA founded?",o:["1942","1946","1949","1952"],a:1},
+{q:"Wilt Chamberlain scored how many points in a single game in 1962?",o:["81","92","100","78"],a:2},
+{q:"Which team drafted LeBron James with the 1st overall pick?",o:["Miami Heat","Cleveland Cavaliers","Los Angeles Lakers","Chicago Bulls"],a:1},
+{q:"Who holds the record for most 3-pointers made in a single season?",o:["Klay Thompson","Ray Allen","Stephen Curry","Damian Lillard"],a:2},
+{q:"How many players are on the court per team during a game?",o:["4","5","6","7"],a:1},
+{q:"Which city do the 'Bucks' NBA team represent?",o:["Milwaukee","Chicago","Houston","Portland"],a:0},
+{q:"Who was nicknamed 'The Mailman'?",o:["Charles Barkley","Karl Malone","Patrick Ewing","Shaquille O'Neal"],a:1},
+{q:"Shaquille O'Neal was famously known for being very poor at what?",o:["Defense","Passing","Free throws","Three-pointers"],a:2},
+{q:"The NBA adopted the 3-point line in which year?",o:["1975","1979","1983","1985"],a:1},
+{q:"Which player was nicknamed 'Black Mamba'?",o:["Kevin Durant","Kobe Bryant","Allen Iverson","Dwyane Wade"],a:1},
+{q:"How many minutes are in a full NBA game (regulation)?",o:["32","40","48","54"],a:2},
+];
+let questions,cur,score,right,wrong,qTimer,qInterval;
+const TPERSEC=20;
+function shuffle(a){return a.sort(()=>Math.random()-.5)}
+function show(id){['setupScreen','gameScreen','resultsScreen'].forEach(s=>{const e=document.getElementById(s);e.classList.remove('active');e.style.display='none'});const e=document.getElementById(id);e.classList.add('active');e.style.display='flex'}
+
+function startGame(){
+  questions=shuffle([...ALL_Q]).slice(0,10);cur=0;score=0;right=0;wrong=0;
+  show('gameScreen');loadQ();
+}
+function loadQ(){
+  if(cur>=10){endGame();return}
+  const q=questions[cur];
+  document.getElementById('qCounter').textContent=`${cur+1} / 10`;
+  document.getElementById('qNum').textContent=`Question ${cur+1}`;
+  document.getElementById('questionText').textContent=q.q;
+  document.getElementById('feedback').textContent='';
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('timerBar').style.width='100%';
+  document.getElementById('timerBar').style.background='linear-gradient(90deg,#c6a76a,#e8c87a)';
+  const od=document.getElementById('optionsDiv');od.innerHTML='';
+  q.o.forEach((opt,i)=>{
+    const b=document.createElement('button');b.className='option-btn';b.textContent=opt;
+    b.onclick=()=>choose(i);od.appendChild(b);
+  });
+  let t=TPERSEC;clearInterval(qInterval);
+  qInterval=setInterval(()=>{t-=.1;document.getElementById('timerBar').style.width=(t/TPERSEC*100)+'%';document.getElementById('timerLabel').textContent=t.toFixed(1)+'s';if(t<=5)document.getElementById('timerBar').style.background='#ff453a';if(t<=0){clearInterval(qInterval);choose(-1);}},100);
+}
+function choose(i){
+  clearInterval(qInterval);
+  const q=questions[cur];
+  document.querySelectorAll('.option-btn').forEach((b,idx)=>{b.disabled=true;if(idx===q.a)b.className='option-btn correct'});
+  if(i===q.a){right++;score+=10;document.getElementById('feedback').textContent='✓ Correct! +10';document.getElementById('feedback').className='feedback ok';}
+  else if(i===-1){wrong++;document.getElementById('feedback').textContent='⏱ Time up!';document.getElementById('feedback').className='feedback bad';if(i>=0)document.querySelectorAll('.option-btn')[i].className='option-btn wrong';}
+  else{wrong++;document.querySelectorAll('.option-btn')[i].className='option-btn wrong';document.getElementById('feedback').textContent=`✗ It was: ${q.o[q.a]}`;document.getElementById('feedback').className='feedback bad';}
+  document.getElementById('scoreDisp').textContent=score;document.getElementById('rightDisp').textContent=right;document.getElementById('wrongDisp').textContent=wrong;
+  cur++;setTimeout(loadQ,1000);
+}
+function endGame(){
+  show('resultsScreen');
+  const pct=Math.round(right/10*100);
+  document.getElementById('rScore').textContent=score;document.getElementById('rRight').textContent=`${right}/10`;document.getElementById('rPct').textContent=pct+'%';
+  document.getElementById('rEmoji').textContent=pct>=80?'🏆':pct>=60?'⭐':'💪';
+  document.getElementById('rTitle').textContent=pct>=80?'MVP-level IQ!':pct>=60?'Solid Basketball Knowledge!':'Keep watching games!';
+  document.getElementById('rSub').textContent=`${right} correct out of 10 · ${score} points`;
+}
+</script>
+</body></html>

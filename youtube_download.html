@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>YouTube Downloader — WebGames</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#090909;color:#f4f1eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(15,15,15,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2rem;width:min(520px,100%);box-shadow:0 40px 100px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:1.25rem}
+h1{font-size:1.8rem;font-weight:800;color:#c6a76a}
+.notice{background:rgba(255,159,10,.08);border:1px solid rgba(255,159,10,.35);border-radius:14px;padding:1rem 1.25rem;display:flex;gap:.75rem;align-items:flex-start}
+.notice-icon{font-size:1.4rem;flex-shrink:0}
+.notice-text{font-size:.9rem;line-height:1.6;color:#e0d8cc}
+.notice-text strong{color:#ff9f0a}
+input[type=url],select{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;color:#f4f1eb;font-size:1rem;font-family:inherit;outline:none}
+input:focus,select:focus{border-color:#c6a76a}
+select option{background:#111}
+label{font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.4rem}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:12px;padding:.875rem;font-size:.95rem;transition:transform .15s;width:100%}
+button:hover{transform:translateY(-1px)}
+.btn-gold{background:linear-gradient(135deg,#c6a76a,#e8c87a);color:#111}
+.step-list{display:flex;flex-direction:column;gap:.6rem}
+.step{display:flex;gap:.75rem;align-items:flex-start}
+.step-num{background:rgba(198,167,106,.15);border:1px solid rgba(198,167,106,.3);border-radius:8px;width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#c6a76a}
+.step-text{font-size:.9rem;color:#b5aea3;line-height:1.6;padding-top:3px}
+.step-text code{background:rgba(255,255,255,0.08);border-radius:5px;padding:.05em .3em;font-size:.85em;color:#c6a76a;font-family:'Courier New',monospace}
+.back{display:block;text-align:center;color:#7f786f;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
+.back:hover{color:#c6a76a}
+.section-title{font-size:.8rem;color:#7f786f;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem}
+</style></head><body>
+<div class="card">
+  <h1>📺 YouTube Downloader</h1>
+
+  <div class="notice">
+    <span class="notice-icon">⚠️</span>
+    <div class="notice-text"><strong>Requires local server</strong> — Downloading videos is a server-side operation that cannot run in a browser. You must run <code>hub_server.py</code> on your computer, then use this tool locally.</div>
+  </div>
+
+  <div>
+    <div class="section-title">How to use locally</div>
+    <div class="step-list">
+      <div class="step"><div class="step-num">1</div><div class="step-text">Install yt-dlp: <code>pip install yt-dlp</code></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Run the server: <code>python hub_server.py</code></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Open <code>http://127.0.0.1:8765</code> in your browser</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Click the YouTube Downloader tile and paste your URL</div></div>
+    </div>
+  </div>
+
+  <div>
+    <label>YouTube URL (demo preview only)</label>
+    <input type="url" id="urlInput" placeholder="https://www.youtube.com/watch?v=…"/>
+  </div>
+
+  <div><label>Format</label>
+    <select id="fmt">
+      <option value="mp4">MP4 — Video + Audio (best quality)</option>
+      <option value="mp3">MP3 — Audio only</option>
+      <option value="webm">WebM — Web optimized video</option>
+    </select>
+  </div>
+
+  <button class="btn-gold" onclick="showInfo()">Download (requires local server)</button>
+  <div id="infoBox" style="display:none;background:rgba(255,255,255,0.04);border-radius:12px;padding:1rem;font-size:.9rem;color:#b5aea3;line-height:1.7"></div>
+
+  <a href="game_hub.html" class="back">← Back to Hub</a>
+</div>
+<script>
+function showInfo(){
+  const url=document.getElementById('urlInput').value.trim();
+  const fmt=document.getElementById('fmt').value;
+  const box=document.getElementById('infoBox');
+  if(!url){box.style.display='block';box.innerHTML='<span style="color:#ff453a">Please enter a YouTube URL first.</span>';return}
+  if(!url.includes('youtube.com')&&!url.includes('youtu.be')){box.style.display='block';box.innerHTML='<span style="color:#ff453a">That doesn\'t look like a YouTube URL.</span>';return}
+  box.style.display='block';
+  box.innerHTML=`<span style="color:#ff9f0a">⚠️ This page is a demo UI.</span><br/>To download <code style="background:rgba(255,255,255,0.1);padding:.1em .3em;border-radius:4px;font-size:.85em;color:#c6a76a">${url}</code> as <strong>${fmt.toUpperCase()}</strong>, run the hub_server.py locally and use the downloader from there.<br/><br/>Alternatively, use the command line:<br/><code style="background:rgba(255,255,255,0.1);padding:.2em .5em;border-radius:6px;font-size:.85em;color:#c6a76a;display:inline-block;margin-top:.4rem">yt-dlp ${fmt==='mp3'?'-x --audio-format mp3':'-f best'} "${url}"</code>`;
+}
+</script>
+</body></html>
