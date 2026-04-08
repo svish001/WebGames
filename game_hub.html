@@ -1057,59 +1057,18 @@
 
     function runApp(file, btn) {
       const app = apps.find(a => a.file === file);
-      if (app && app.webUrl && !app.pygame) {
-        window.open(app.webUrl, "_blank");
-        return;
-      }
       const cmd = `${PY} ${ROOT}/${file}`;
-      if (app && app.pygame) {
-        const onHub = location.hostname === "127.0.0.1" && location.port === "8765";
-        if (onHub) {
-          fetch("/api/run", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ file })
-          })
-            .then(async r => {
-              const d = await r.json();
-              if (!r.ok) throw new Error(d.error || "failed");
-              if (btn) {
-                const orig = btn.textContent;
-                btn.textContent = "Launched!";
-                btn.disabled = true;
-                setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
-              }
-            })
-            .catch(() => {
-              // fallback: copy command
-              copyText(cmd).then(() => {
-                if (btn) {
-                  const orig = btn.textContent;
-                  btn.textContent = "Copied!";
-                  btn.disabled = true;
-                  setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
-                }
-              });
-            });
-        } else {
-          // Not on hub server — copy command
-          copyText(cmd).then(() => {
-            if (btn) {
-              const orig = btn.textContent;
-              btn.textContent = "Copied!";
-              btn.disabled = true;
-              setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
-            }
-          });
+      const localHost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      const onHub = location.protocol.startsWith("http") && localHost && location.port === "8765";
+      if (!onHub) {
+        if (app && app.webUrl) {
+          window.open(app.webUrl, "_blank");
+          return;
         }
+        copyRunCommand(file, btn);
         return;
       }
-      const local = location.protocol.startsWith("http") && (location.hostname === "localhost" || location.hostname === "127.0.0.1");
-      if (!local) {
-        copyRunCommand(file);
-        alert("Run needs localhost mode. Command copied.");
-        return;
-      }
+
       fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1118,9 +1077,16 @@
         .then(async r => {
           const d = await r.json();
           if (!r.ok) throw new Error(d.error || "Run failed");
-          alert(`Launched: ${file}`);
+          if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = "Launched!";
+            btn.disabled = true;
+            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+          }
         })
-        .catch(err => alert(`Run failed: ${err.message}\n\n${cmd}`));
+        .catch(() => {
+          copyRunCommand(file, btn);
+        });
     }
 
     function toggleFavorite(file) {
