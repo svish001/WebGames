@@ -74,7 +74,8 @@ class HubHandler(SimpleHTTPRequestHandler):
         try:
             if platform.system() == "Darwin":
                 # On macOS open a new Terminal window so pygame can access the display
-                cmd = f'"{python_exec}" "{target}"'
+                # Use single quotes inside AppleScript string to avoid double-quote escaping issues
+                cmd = f"'{python_exec}' '{target}'"
                 subprocess.Popen(
                     ["osascript", "-e",
                      f'tell application "Terminal" to do script "{cmd}"']

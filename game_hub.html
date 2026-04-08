@@ -1202,12 +1202,14 @@
         </div>
         <div class="card-actions">
           <button class="card-action solid">Play</button>
-          <button class="card-action ghost">Command</button>
+          <button class="card-action ghost">${app.pygame ? "Launch" : "Command"}</button>
         </div>
       `;
       card.querySelector(".fav-toggle").onclick = () => toggleFavorite(app.file);
       card.querySelector(".card-action.solid").onclick = function() { runApp(app.file, this); };
-      card.querySelector(".card-action.ghost").onclick = function() { copyRunCommand(app.file, this); };
+      card.querySelector(".card-action.ghost").onclick = function() {
+        if (app.pygame) { runApp(app.file, this); } else { copyRunCommand(app.file, this); }
+      };
       return card;
     }
 
