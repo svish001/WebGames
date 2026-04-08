@@ -1172,7 +1172,13 @@
         </div>
       `;
       card.querySelector(".fav-toggle").onclick = () => toggleFavorite(app.file);
-      card.querySelector(".card-action.solid").onclick = function() { runApp(app.file, this); };
+      card.querySelector(".card-action.solid").onclick = function() {
+        if (app.webUrl) {
+          window.open(app.webUrl, "_blank");
+        } else {
+          runApp(app.file, this);
+        }
+      };
       card.querySelector(".card-action.ghost").onclick = function() { runApp(app.file, this); };
       return card;
     }
